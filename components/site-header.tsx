@@ -8,6 +8,9 @@ type SiteHeaderProps = {
 };
 
 export function SiteHeader({ profile, email }: SiteHeaderProps) {
+  const canOpenAdmin =
+    profile?.role === "admin" || profile?.role === "catalog_editor";
+
   return (
     <header className="border-b border-white/10 bg-neutral-950/95 px-5 py-4 text-white sm:px-8">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
@@ -26,6 +29,11 @@ export function SiteHeader({ profile, email }: SiteHeaderProps) {
               <Link href="/account/orders" className="text-neutral-300 hover:text-orange-300">
                 Orders
               </Link>
+              {canOpenAdmin ? (
+                <Link href="/admin" className="text-neutral-300 hover:text-orange-300">
+                  Admin
+                </Link>
+              ) : null}
               <form action={signOut}>
                 <button
                   type="submit"

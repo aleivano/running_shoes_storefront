@@ -1,5 +1,7 @@
 export type ProductStatus = "active" | "archived";
 
+export type AppRole = "customer" | "catalog_editor" | "admin";
+
 export type OrderStatus =
   | "pending"
   | "processing"
@@ -30,6 +32,7 @@ export type Profile = {
   displayName: string | null;
   phone: string | null;
   avatarUrl: string | null;
+  role: AppRole;
   createdAt: string;
   updatedAt: string;
 };

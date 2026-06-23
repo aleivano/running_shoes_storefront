@@ -14,7 +14,8 @@ A responsive running shoes store built with Next.js, React, TypeScript, Tailwind
 - Favorites page with saved products and basket helper
 - Checkout-ready order creation from the basket
 - Orders page with current and past orders, line items, status, payment status, and cancellation for pending/processing orders
-- Supabase SQL migration with tables, seed products, RLS policies, profile trigger, and username lookup RPC
+- Admin console for assigning user roles and authoring catalog products
+- Supabase SQL migrations with tables, seed products, RLS policies, profile trigger, username lookup RPC, and catalog authoring permissions
 
 ## Tech Stack
 
@@ -48,20 +49,39 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-4. Run the migration in `supabase/migrations/20260622000000_accounts_orders_favorites.sql` using the Supabase SQL editor or Supabase CLI.
+4. Run the migrations in order using the Supabase SQL editor or Supabase CLI:
+
+```text
+supabase/migrations/20260622000000_accounts_orders_favorites.sql
+supabase/migrations/20260623000000_admin_roles_catalog_authoring.sql
+```
+
 5. In Supabase Dashboard -> Authentication -> URL Configuration, set Site URL to:
 
 ```text
 http://localhost:3000
 ```
 
-6. Add this Redirect URL:
+6. Add these Redirect URLs:
 
 ```text
 http://localhost:3000/auth/callback
+http://localhost:3000/**
 ```
 
 7. Restart the dev server after changing `.env.local`.
+
+## Admin Setup
+
+The first admin must be bootstrapped by a database owner after that user registers. In development, replace the email and run:
+
+```sql
+update public.profiles set role = 'admin' where email = 'admin@example.com';
+```
+
+After that, the admin can use `/admin/users` to assign `customer`, `catalog_editor`, and `admin` roles. Admins and catalog editors can use `/admin/catalog` to create products, update product details, and archive products. Archived products remain in the database for order history but do not appear in the public storefront.
+
+If login or registration sends the browser to a deployed Vercel URL while testing locally, recheck Supabase Authentication -> URL Configuration. The local Site URL and Redirect URLs above must be saved for localhost testing.
 
 ## Social Login Setup
 
@@ -100,9 +120,11 @@ npm audit --omit=dev
 - `components/storefront.tsx`: catalog, favorites buttons, basket, and checkout action
 - `app/actions/*.ts`: auth, profile, favorites, and order server actions
 - `app/account/*`: protected profile, order, and favorites pages
+- `app/admin/*`: protected admin console for user permissions and catalog authoring
 - `lib/supabase/*`: Supabase client, config, and middleware helpers
 - `lib/data.ts`: server data loading and row-to-domain mapping
 - `supabase/migrations/20260622000000_accounts_orders_favorites.sql`: database schema, RLS, seed products
+- `supabase/migrations/20260623000000_admin_roles_catalog_authoring.sql`: roles, admin policies, and catalog author policies
 - `next.config.mjs`: Next.js image host configuration
 
 ## Validation Checklist
@@ -118,3 +140,6 @@ npm audit --omit=dev
 - Cancel a pending or processing order.
 - Confirm delivered or canceled orders do not show a cancel button.
 - Check `/account`, `/account/orders`, and `/account/favorites` redirect unauthenticated users when Supabase is configured.
+- Confirm customers cannot open `/admin`.
+- Confirm admins can assign roles at `/admin/users`.
+- Confirm admins and catalog editors can create, update, activate, and archive products at `/admin/catalog`.

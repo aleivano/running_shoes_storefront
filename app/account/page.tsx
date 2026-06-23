@@ -38,6 +38,12 @@ export default async function AccountPage() {
           <p className="text-sm text-neutral-400">Saved favorites</p>
           <p className="mt-2 font-bold text-white">{session.favoriteIds.length}</p>
         </div>
+        <div className="rounded-lg border border-white/10 bg-neutral-900 p-5">
+          <p className="text-sm text-neutral-400">Role</p>
+          <p className="mt-2 font-bold capitalize text-white">
+            {session.profile.role.replace("_", " ")}
+          </p>
+        </div>
       </div>
     </section>
   );

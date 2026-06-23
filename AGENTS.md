@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a Next.js running shoes store with Supabase-backed accounts, favorites, and orders. Storefront data loading starts in `app/page.tsx`; the interactive catalog, basket, and checkout behavior live in `components/storefront.tsx`. Account routes live under `app/account/`; auth routes live under `app/login`, `app/register`, and `app/auth/callback`. Server actions are grouped in `app/actions/`. Supabase client helpers live in `lib/supabase/`, domain types in `lib/types.ts`, data loaders in `lib/data.ts`, and database migrations in `supabase/migrations/`.
+This repository contains a Next.js running shoes store with Supabase-backed accounts, favorites, orders, and admin catalog authoring. Storefront data loading starts in `app/page.tsx`; the interactive catalog, basket, and checkout behavior live in `components/storefront.tsx`. Account routes live under `app/account/`; admin routes live under `app/admin/`; auth routes live under `app/login`, `app/register`, and `app/auth/callback`. Server actions are grouped in `app/actions/`. Supabase client helpers live in `lib/supabase/`, domain types in `lib/types.ts`, data loaders in `lib/data.ts`, and database migrations in `supabase/migrations/`.
 
 ## Build, Test, and Development Commands
 
@@ -20,13 +20,13 @@ Use TypeScript, React function components, server components by default, and cli
 
 ## Supabase Guidelines
 
-Keep persisted account, favorite, and order mutations in server actions. Use `lib/supabase/server.ts` for server components/actions and `lib/supabase/browser.ts` only from client components that truly need direct Supabase browser access. Update `supabase/migrations/` whenever database tables, RLS policies, RPC functions, or seed product requirements change. Do not bypass RLS assumptions in UI code; pages should work with owner-scoped reads and writes.
+Keep persisted account, favorite, order, admin role, and catalog mutations in server actions. Use `lib/supabase/server.ts` for server components/actions and `lib/supabase/browser.ts` only from client components that truly need direct Supabase browser access. Update `supabase/migrations/` whenever database tables, RLS policies, RPC functions, role requirements, or seed product requirements change. Do not bypass RLS assumptions in UI code; pages should work with owner-scoped reads and writes plus role-scoped admin/catalog policies.
 
-OAuth providers are configured outside the codebase in Supabase and the provider dashboards. For local development, Supabase URL Configuration must include Site URL `http://localhost:3000` and Redirect URL `http://localhost:3000/auth/callback`. Provider dashboards, such as Google Cloud Console, should use the Supabase provider callback URL shown in Supabase, not the app callback URL.
+OAuth providers are configured outside the codebase in Supabase and the provider dashboards. For local development, Supabase URL Configuration must include Site URL `http://localhost:3000` and Redirect URLs `http://localhost:3000/auth/callback` and `http://localhost:3000/**`; otherwise auth flows can bounce from localhost to a deployed Vercel URL. Provider dashboards, such as Google Cloud Console, should use the Supabase provider callback URL shown in Supabase, not the app callback URL.
 
 ## Testing Guidelines
 
-No automated test framework is configured yet. Validate changes with `npm run lint`, `npm run build`, and browser checks at desktop and mobile widths. For auth changes, verify email registration, Google registration when configured, username login, and password policy enforcement: 8+ characters, one uppercase letter, one number, and one special character. For cart and order changes, verify adding items updates quantity, line totals, total price, checkout redirects signed-out users, signed-in checkout creates an order, and cancel buttons only appear for pending/processing orders. If tests are added later, place them under `tests/` or beside the relevant component using names such as `orders.test.tsx`.
+No automated test framework is configured yet. Validate changes with `npm run lint`, `npm run build`, and browser checks at desktop and mobile widths. For auth changes, verify email registration, Google registration when configured, username login, and password policy enforcement: 8+ characters, one uppercase letter, one number, and one special character. For cart and order changes, verify adding items updates quantity, line totals, total price, checkout redirects signed-out users, signed-in checkout creates an order, and cancel buttons only appear for pending/processing orders. For admin changes, verify customers cannot open `/admin`, admins can assign roles at `/admin/users`, and admins or catalog editors can create, update, activate, and archive products at `/admin/catalog`. If tests are added later, place them under `tests/` or beside the relevant component using names such as `orders.test.tsx`.
 
 ## Commit & Pull Request Guidelines
 

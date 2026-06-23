@@ -11,6 +11,8 @@ export default async function AccountLayout({
   children: React.ReactNode;
 }>) {
   const session = await getSessionContext();
+  const canOpenAdmin =
+    session.profile?.role === "admin" || session.profile?.role === "catalog_editor";
 
   if (isSupabaseConfigured && !session.userId) {
     redirect("/login?redirectTo=/account");
@@ -32,6 +34,11 @@ export default async function AccountLayout({
             <Link className="rounded-md px-3 py-2 text-neutral-300 hover:bg-white/5 hover:text-orange-300" href="/account/favorites">
               Favorites
             </Link>
+            {canOpenAdmin ? (
+              <Link className="rounded-md px-3 py-2 text-neutral-300 hover:bg-white/5 hover:text-orange-300" href="/admin">
+                Admin
+              </Link>
+            ) : null}
           </nav>
         </aside>
         {children}

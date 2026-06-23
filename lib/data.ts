@@ -1,7 +1,7 @@
 import { fallbackProducts } from "@/lib/catalog";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import type { Order, OrderItem, Product, Profile } from "@/lib/types";
+import type { AppRole, Order, OrderItem, Product, Profile } from "@/lib/types";
 
 type ProductRow = {
   id: number;
@@ -20,6 +20,7 @@ type ProfileRow = {
   display_name: string | null;
   phone: string | null;
   avatar_url: string | null;
+  role: AppRole;
   created_at: string;
   updated_at: string;
 };
@@ -68,9 +69,15 @@ export const mapProfile = (row: ProfileRow): Profile => ({
   displayName: row.display_name,
   phone: row.phone,
   avatarUrl: row.avatar_url,
+  role: row.role,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
+
+export const canManageUsers = (profile: Profile | null) => profile?.role === "admin";
+
+export const canAuthorCatalog = (profile: Profile | null) =>
+  profile?.role === "admin" || profile?.role === "catalog_editor";
 
 const mapOrderItem = (row: OrderItemRow): OrderItem => ({
   id: row.id,
@@ -150,7 +157,7 @@ export async function getSessionContext() {
   const [{ data: profile }, { data: favorites }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id,email,username,display_name,phone,avatar_url,created_at,updated_at")
+      .select("id,email,username,display_name,phone,avatar_url,role,created_at,updated_at")
       .eq("id", user.id)
       .maybeSingle<ProfileRow>(),
     supabase.from("favorites").select("product_id").eq("user_id", user.id),
@@ -217,4 +224,64 @@ export async function getFavoriteProducts() {
   return productIds
     .map((productId) => productsById.get(productId))
     .filter((product): product is Product => Boolean(product));
+}
+
+export async function getAdminSessionContext() {
+  const session = await getSessionContext();
+
+  return {
+    ...session,
+    canManageUsers: canManageUsers(session.profile),
+    canAuthorCatalog: canAuthorCatalog(session.profile),
+  };
+}
+
+export async function getAdminUsers() {
+  if (!isSupabaseConfigured) {
+    return [] as Profile[];
+  }
+
+  const session = await getAdminSessionContext();
+
+  if (!session.canManageUsers) {
+    return [] as Profile[];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,email,username,display_name,phone,avatar_url,role,created_at,updated_at")
+    .order("created_at", { ascending: false })
+    .returns<ProfileRow[]>();
+
+  if (error || !data) {
+    return [] as Profile[];
+  }
+
+  return data.map(mapProfile);
+}
+
+export async function getAdminProducts() {
+  if (!isSupabaseConfigured) {
+    return fallbackProducts;
+  }
+
+  const session = await getAdminSessionContext();
+
+  if (!session.canAuthorCatalog) {
+    return [] as Product[];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("id,name,description,price,image_url,inventory,status")
+    .order("id")
+    .returns<ProductRow[]>();
+
+  if (error || !data) {
+    return [] as Product[];
+  }
+
+  return data.map(mapProduct);
 }
