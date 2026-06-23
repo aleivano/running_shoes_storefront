@@ -32,12 +32,38 @@ type ProductRow = {
   image_url: string;
   inventory: number;
   status: Product["status"];
+  available_sizes: unknown;
+  available_colors: unknown;
 };
 
 type OrderStatusRow = {
   status: "pending" | "processing" | "shipped" | "delivered" | "canceled";
   payment_status: "unpaid" | "pending" | "paid" | "failed" | "refunded";
 };
+
+type AvailableColor = {
+  name: string;
+  hex: string;
+  imageUrl?: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const getAvailableColors = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((color): color is AvailableColor => {
+        if (
+          !isRecord(color) ||
+          typeof color.name !== "string" ||
+          typeof color.hex !== "string"
+        ) {
+          return false;
+        }
+
+        return typeof color.imageUrl === "undefined" || typeof color.imageUrl === "string";
+      })
+    : [];
 
 export async function createPaidOrderFromCheckout(
   input: CheckoutOrderInput,
@@ -75,7 +101,17 @@ export async function createPaidOrderFromCheckout(
 
   const quantities = new Map<number, number>();
   for (const item of input.cart) {
-    if (!Number.isInteger(item.id) || !Number.isInteger(item.quantity) || item.quantity < 1) {
+    if (
+      !Number.isInteger(item.id) ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity < 1 ||
+      !item.selectedSize ||
+      !isRecord(item.selectedColor) ||
+      typeof item.selectedColor.name !== "string" ||
+      typeof item.selectedColor.hex !== "string" ||
+      !item.selectedColor.name ||
+      !/^#[0-9A-F]{6}$/i.test(item.selectedColor.hex)
+    ) {
       return { ok: false, reason: "validation", error: "Your basket contains an invalid item." };
     }
 
@@ -85,7 +121,7 @@ export async function createPaidOrderFromCheckout(
   const productIds = [...quantities.keys()];
   const { data: products, error: productsError } = await supabase
     .from("products")
-    .select("id,name,description,price,image_url,inventory,status")
+    .select("id,name,description,price,image_url,inventory,status,available_sizes,available_colors")
     .in("id", productIds)
     .eq("status", "active")
     .returns<ProductRow[]>();
@@ -98,9 +134,34 @@ export async function createPaidOrderFromCheckout(
     return { ok: false, error: "One or more products are no longer available." };
   }
 
-  const subtotal = products.reduce((sum, product) => {
-    const quantity = quantities.get(product.id) ?? 0;
-    return sum + product.price * quantity;
+  const productsById = new Map(products.map((product) => [product.id, product]));
+
+  for (const item of input.cart) {
+    const product = productsById.get(item.id);
+    const availableSizes = Array.isArray(product?.available_sizes)
+      ? product.available_sizes.filter((size): size is string => typeof size === "string")
+      : [];
+    const availableColors = getAvailableColors(product?.available_colors);
+
+    const hasSize = availableSizes.includes(item.selectedSize);
+    const hasColor = availableColors.some(
+      (color) =>
+        color.name === item.selectedColor.name &&
+        color.hex.toUpperCase() === item.selectedColor.hex.toUpperCase(),
+    );
+
+    if (!hasSize || !hasColor) {
+      return {
+        ok: false,
+        reason: "validation",
+        error: `${item.name} is no longer available in the selected size or color.`,
+      };
+    }
+  }
+
+  const subtotal = input.cart.reduce((sum, item) => {
+    const product = productsById.get(item.id);
+    return sum + (product?.price ?? 0) * item.quantity;
   }, 0);
 
   const unavailableProduct = products.find((product) => {
@@ -151,17 +212,26 @@ export async function createPaidOrderFromCheckout(
     return { ok: false, error: orderError?.message ?? "Could not create order." };
   }
 
-  const orderItems = products.map((product) => {
-    const quantity = quantities.get(product.id) ?? 0;
+  const orderItems = input.cart.map((item) => {
+    const product = productsById.get(item.id);
+    const price = product?.price ?? item.price;
+    const selectedProductColor = getAvailableColors(product?.available_colors).find(
+      (color) =>
+        color.name === item.selectedColor.name &&
+        color.hex.toUpperCase() === item.selectedColor.hex.toUpperCase(),
+    );
 
     return {
       order_id: order.id,
-      product_id: product.id,
-      product_name: product.name,
-      product_image_url: product.image_url,
-      unit_price: product.price,
-      quantity,
-      line_total: product.price * quantity,
+      product_id: item.id,
+      product_name: product?.name ?? item.name,
+      product_image_url: selectedProductColor?.imageUrl ?? product?.image_url ?? item.imageUrl,
+      selected_size: item.selectedSize,
+      selected_color_name: item.selectedColor.name,
+      selected_color_hex: item.selectedColor.hex.toUpperCase(),
+      unit_price: price,
+      quantity: item.quantity,
+      line_total: price * item.quantity,
     };
   });
 

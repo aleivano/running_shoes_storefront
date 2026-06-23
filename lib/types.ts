@@ -13,6 +13,17 @@ export type PaymentStatus = "unpaid" | "pending" | "paid" | "failed" | "refunded
 
 export type DeliveryOptionId = "standard" | "express";
 
+export type ProductSpec = {
+  label: string;
+  value: string;
+};
+
+export type ProductColor = {
+  name: string;
+  hex: string;
+  imageUrl?: string;
+};
+
 export type Product = {
   id: number;
   name: string;
@@ -21,9 +32,16 @@ export type Product = {
   imageUrl: string;
   inventory: number;
   status: ProductStatus;
+  sizingInfo: string;
+  fitNotes: string;
+  specs: ProductSpec[];
+  availableSizes: string[];
+  availableColors: ProductColor[];
 };
 
 export type CartItem = Product & {
+  selectedSize: string;
+  selectedColor: ProductColor;
   quantity: number;
 };
 
@@ -45,6 +63,9 @@ export type OrderItem = {
   productId: number | null;
   productName: string;
   productImageUrl: string;
+  selectedSize: string;
+  selectedColorName: string;
+  selectedColorHex: string;
   unitPrice: number;
   quantity: number;
   lineTotal: number;

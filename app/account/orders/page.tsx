@@ -96,6 +96,26 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         <p className="mt-1 text-sm text-neutral-400">
                           {item.quantity} x {formatPrice(item.unitPrice)}
                         </p>
+                        {item.selectedSize || item.selectedColorName ? (
+                          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-400">
+                            {item.selectedSize ? <span>Size {item.selectedSize}</span> : null}
+                            {item.selectedSize && item.selectedColorName ? (
+                              <span aria-hidden="true">/</span>
+                            ) : null}
+                            {item.selectedColorName ? (
+                              <span className="inline-flex items-center gap-2">
+                                {item.selectedColorHex ? (
+                                  <span
+                                    aria-hidden="true"
+                                    className="h-4 w-4 rounded-full border border-white/30"
+                                    style={{ backgroundColor: item.selectedColorHex }}
+                                  />
+                                ) : null}
+                                {item.selectedColorName}
+                              </span>
+                            ) : null}
+                          </p>
+                        ) : null}
                       </div>
                       <p className="font-bold text-orange-300">{formatPrice(item.lineTotal)}</p>
                     </li>

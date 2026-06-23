@@ -1,7 +1,25 @@
 import { fallbackProducts } from "@/lib/catalog";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import type { AppRole, Order, OrderItem, Product, Profile } from "@/lib/types";
+import type {
+  AppRole,
+  Order,
+  OrderItem,
+  Product,
+  ProductColor,
+  ProductSpec,
+  Profile,
+} from "@/lib/types";
+
+const PRODUCT_SELECT =
+  "id,name,description,price,image_url,inventory,status,sizing_info,fit_notes,specs,available_sizes,available_colors";
+
+const DEFAULT_PRODUCT_SIZES = ["7", "8", "9", "10", "11", "12", "13"];
+const DEFAULT_PRODUCT_COLORS: ProductColor[] = [{ name: "Black", hex: "#111827" }];
+
+const getFallbackProductById = (productId: number) =>
+  fallbackProducts.find((product) => product.id === productId && product.status === "active") ??
+  null;
 
 type ProductRow = {
   id: number;
@@ -11,6 +29,11 @@ type ProductRow = {
   image_url: string;
   inventory: number;
   status: Product["status"];
+  sizing_info: string | null;
+  fit_notes: string | null;
+  specs: unknown;
+  available_sizes: unknown;
+  available_colors: unknown;
 };
 
 type ProfileRow = {
@@ -31,6 +54,9 @@ type OrderItemRow = {
   product_id: number | null;
   product_name: string;
   product_image_url: string;
+  selected_size: string | null;
+  selected_color_name: string | null;
+  selected_color_hex: string | null;
   unit_price: number;
   quantity: number;
   line_total: number;
@@ -56,6 +82,75 @@ type OrderRow = {
   order_items?: OrderItemRow[];
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const mapProductSpecs = (value: unknown): ProductSpec[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((spec) => {
+      if (!isRecord(spec) || typeof spec.label !== "string" || typeof spec.value !== "string") {
+        return null;
+      }
+
+      const label = spec.label.trim();
+      const specValue = spec.value.trim();
+
+      if (!label || !specValue) {
+        return null;
+      }
+
+      return { label, value: specValue };
+    })
+    .filter((spec): spec is ProductSpec => spec !== null);
+};
+
+const mapProductSizes = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return DEFAULT_PRODUCT_SIZES;
+  }
+
+  const sizes = value
+    .map((size) => (typeof size === "string" ? size.trim() : ""))
+    .filter(Boolean);
+
+  return sizes.length ? sizes : DEFAULT_PRODUCT_SIZES;
+};
+
+const normalizeHexColor = (value: string) => value.trim().toUpperCase();
+
+const getOptionalImageUrl = (value: unknown) =>
+  typeof value === "string" && value.trim() ? value.trim() : undefined;
+
+const mapProductColors = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return DEFAULT_PRODUCT_COLORS;
+  }
+
+  const colors = value
+    .map((color) => {
+      if (!isRecord(color) || typeof color.name !== "string" || typeof color.hex !== "string") {
+        return null;
+      }
+
+      const name = color.name.trim();
+      const hex = normalizeHexColor(color.hex);
+      const imageUrl = getOptionalImageUrl(color.imageUrl);
+
+      if (!name || !/^#[0-9A-F]{6}$/.test(hex)) {
+        return null;
+      }
+
+      return { name, hex, ...(imageUrl ? { imageUrl } : {}) };
+    })
+    .filter((color): color is ProductColor => color !== null);
+
+  return colors.length ? colors : DEFAULT_PRODUCT_COLORS;
+};
+
 export const mapProduct = (row: ProductRow): Product => ({
   id: row.id,
   name: row.name,
@@ -64,6 +159,15 @@ export const mapProduct = (row: ProductRow): Product => ({
   imageUrl: row.image_url,
   inventory: row.inventory,
   status: row.status,
+  sizingInfo:
+    row.sizing_info?.trim() ||
+    "Available in US sizes 7-13. True-to-size fit for most runners.",
+  fitNotes:
+    row.fit_notes?.trim() ||
+    "Balanced running fit with secure midfoot lockdown and enough toe room for daily miles.",
+  specs: mapProductSpecs(row.specs),
+  availableSizes: mapProductSizes(row.available_sizes),
+  availableColors: mapProductColors(row.available_colors),
 });
 
 export const mapProfile = (row: ProfileRow): Profile => ({
@@ -89,6 +193,9 @@ const mapOrderItem = (row: OrderItemRow): OrderItem => ({
   productId: row.product_id,
   productName: row.product_name,
   productImageUrl: row.product_image_url,
+  selectedSize: row.selected_size ?? "",
+  selectedColorName: row.selected_color_name ?? "",
+  selectedColorHex: row.selected_color_hex ?? "",
   unitPrice: row.unit_price,
   quantity: row.quantity,
   lineTotal: row.line_total,
@@ -123,18 +230,51 @@ export async function getProducts() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("products")
-      .select("id,name,description,price,image_url,inventory,status")
+      .select(PRODUCT_SELECT)
       .eq("status", "active")
+      .gt("inventory", 0)
       .order("id")
       .returns<ProductRow[]>();
 
-    if (error || !data?.length) {
+    if (error || !data) {
       return fallbackProducts;
     }
 
     return data.map(mapProduct);
   } catch {
     return fallbackProducts;
+  }
+}
+
+export async function getProductById(productId: number) {
+  if (!Number.isInteger(productId) || productId < 1) {
+    return null;
+  }
+
+  if (!isSupabaseConfigured) {
+    return getFallbackProductById(productId);
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT)
+      .eq("id", productId)
+      .eq("status", "active")
+      .maybeSingle<ProductRow>();
+
+    if (error) {
+      return getFallbackProductById(productId);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return mapProduct(data);
+  } catch {
+    return getFallbackProductById(productId);
   }
 }
 
@@ -218,9 +358,10 @@ export async function getFavoriteProducts() {
   const productIds = favorites.map((favorite) => favorite.product_id as number);
   const { data: products, error: productsError } = await supabase
     .from("products")
-    .select("id,name,description,price,image_url,inventory,status")
+    .select(PRODUCT_SELECT)
     .in("id", productIds)
     .eq("status", "active")
+    .gt("inventory", 0)
     .returns<ProductRow[]>();
 
   if (productsError || !products) {
@@ -283,7 +424,7 @@ export async function getAdminProducts() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
-    .select("id,name,description,price,image_url,inventory,status")
+    .select(PRODUCT_SELECT)
     .order("id")
     .returns<ProductRow[]>();
 

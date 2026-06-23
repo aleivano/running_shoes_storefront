@@ -12,8 +12,8 @@ export default async function AdminCatalogPage() {
         </p>
         <h1 className="mt-2 text-3xl font-black text-white">Catalog authoring</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-neutral-400">
-          Create running shoe products, update inventory and pricing, and archive products that
-          should no longer appear in the public storefront.
+          Create running shoe products, update detail page content, manage inventory and pricing,
+          and archive products that should no longer appear in the public storefront.
         </p>
       </div>
 

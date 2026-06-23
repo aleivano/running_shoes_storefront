@@ -24,6 +24,18 @@ const statusLabels: Record<ProductStatus, string> = {
   archived: "Archived",
 };
 
+const formatSpecs = (product?: Product) =>
+  product?.specs.map((spec) => `${spec.label}: ${spec.value}`).join("\n") ?? "";
+
+const formatSizes = (product?: Product) => product?.availableSizes.join(", ") ?? "";
+
+const formatColors = (product?: Product) =>
+  product?.availableColors
+    .map((color) =>
+      [color.name, `${color.hex}${color.imageUrl ? ` | ${color.imageUrl}` : ""}`].join(": "),
+    )
+    .join("\n") ?? "";
+
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
 
@@ -214,6 +226,61 @@ function ProductFields({ product }: { product?: Product }) {
           required
           minLength={12}
           rows={3}
+          className="rounded-md border border-white/10 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-orange-300"
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-semibold text-neutral-200 md:col-span-2">
+        Sizing info
+        <textarea
+          name="sizingInfo"
+          defaultValue={product?.sizingInfo ?? ""}
+          required
+          minLength={12}
+          rows={3}
+          className="rounded-md border border-white/10 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-orange-300"
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-semibold text-neutral-200 md:col-span-2">
+        Available sizes
+        <textarea
+          name="availableSizes"
+          defaultValue={formatSizes(product)}
+          required
+          rows={2}
+          placeholder="7, 8, 9, 10, 11, 12, 13"
+          className="rounded-md border border-white/10 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-orange-300"
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-semibold text-neutral-200 md:col-span-2">
+        Available colors
+        <textarea
+          name="availableColors"
+          defaultValue={formatColors(product)}
+          required
+          rows={4}
+          placeholder="Volt Orange: #F97316 | https://images.unsplash.com/...&#10;Black: #111827 | https://images.unsplash.com/..."
+          className="rounded-md border border-white/10 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-orange-300"
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-semibold text-neutral-200 md:col-span-2">
+        Fit notes
+        <textarea
+          name="fitNotes"
+          defaultValue={product?.fitNotes ?? ""}
+          required
+          minLength={12}
+          rows={3}
+          className="rounded-md border border-white/10 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-orange-300"
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-semibold text-neutral-200 md:col-span-2">
+        Specs
+        <textarea
+          name="specs"
+          defaultValue={formatSpecs(product)}
+          required
+          rows={5}
+          placeholder="Weight: 7.4 oz&#10;Drop: 6 mm&#10;Surface: Road"
           className="rounded-md border border-white/10 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-orange-300"
         />
       </label>

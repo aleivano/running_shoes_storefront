@@ -2,25 +2,80 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toggleFavorite } from "@/app/actions/favorites";
 import {
-  addProductToCart,
   getCartItemCount,
   getServerCartSnapshot,
   getStoredCartSnapshot,
   subscribeToStoredCart,
-  writeStoredCart,
 } from "@/lib/cart-storage";
 import { formatPrice } from "@/lib/format";
-import type { Product } from "@/lib/types";
+import type { Product, ProductColor } from "@/lib/types";
 
 type StorefrontProps = {
   products: Product[];
   favoriteIds: number[];
   isSignedIn: boolean;
 };
+
+const getStockLabel = (inventory: number) => {
+  if (inventory === 0) {
+    return "Out of stock";
+  }
+
+  if (inventory <= 10) {
+    return `Low stock: ${inventory} left`;
+  }
+
+  return "In stock";
+};
+
+function ColorSwatches({ colors }: { colors: ProductColor[] }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(colors.length);
+
+  useEffect(() => {
+    const row = rowRef.current;
+
+    if (!row) {
+      return;
+    }
+
+    const updateVisibleCount = () => {
+      const swatchWidth = 22;
+      const gap = 8;
+      const availableWidth = row.clientWidth;
+      const nextVisibleCount = Math.max(
+        1,
+        Math.min(colors.length, Math.floor((availableWidth + gap) / (swatchWidth + gap))),
+      );
+
+      setVisibleCount(nextVisibleCount);
+    };
+
+    updateVisibleCount();
+    const observer = new ResizeObserver(updateVisibleCount);
+    observer.observe(row);
+
+    return () => observer.disconnect();
+  }, [colors.length]);
+
+  return (
+    <div ref={rowRef} className="mt-4 flex min-h-[22px] min-w-0 gap-2 overflow-hidden">
+      {colors.slice(0, visibleCount).map((color) => (
+        <span
+          key={`${color.name}-${color.hex}`}
+          title={color.name}
+          aria-label={color.name}
+          className="h-[22px] w-[22px] shrink-0 rounded-full border border-white/30"
+          style={{ backgroundColor: color.hex }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function Storefront({ products, favoriteIds, isSignedIn }: StorefrontProps) {
   const router = useRouter();
@@ -34,10 +89,6 @@ export function Storefront({ products, favoriteIds, isSignedIn }: StorefrontProp
   const [isPending, startTransition] = useTransition();
 
   const cartCount = getCartItemCount(cart);
-
-  const addToCart = (product: Product) => {
-    writeStoredCart(addProductToCart(cart, product));
-  };
 
   const onToggleFavorite = (productId: number) => {
     if (!isSignedIn) {
@@ -173,13 +224,15 @@ export function Storefront({ products, favoriteIds, isSignedIn }: StorefrontProp
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => {
               const isFavorite = favorites.has(product.id);
-
               return (
                 <article
                   key={product.id}
                   className="overflow-hidden rounded-lg border border-white/10 bg-neutral-900 shadow-lg shadow-black/25"
                 >
-                  <div className="aspect-[4/3] overflow-hidden bg-neutral-800">
+                  <Link
+                    href={`/products/${product.id}`}
+                    className="block aspect-[4/3] overflow-hidden bg-neutral-800"
+                  >
                     <Image
                       src={product.imageUrl}
                       alt={product.name}
@@ -188,10 +241,17 @@ export function Storefront({ products, favoriteIds, isSignedIn }: StorefrontProp
                       sizes="(min-width: 1280px) 26vw, (min-width: 640px) 45vw, 100vw"
                       className="h-full w-full object-cover transition duration-300 hover:scale-105"
                     />
-                  </div>
+                  </Link>
                   <div className="flex min-h-[250px] flex-col p-5">
                     <div className="flex items-start justify-between gap-4">
-                      <h3 className="text-xl font-bold text-white">{product.name}</h3>
+                      <h3 className="text-xl font-bold text-white">
+                        <Link
+                          href={`/products/${product.id}`}
+                          className="transition hover:text-orange-200"
+                        >
+                          {product.name}
+                        </Link>
+                      </h3>
                       <p className="shrink-0 text-lg font-black text-orange-300">
                         {formatPrice(product.price)}
                       </p>
@@ -199,14 +259,31 @@ export function Storefront({ products, favoriteIds, isSignedIn }: StorefrontProp
                     <p className="mt-3 flex-1 text-sm leading-6 text-neutral-300">
                       {product.description}
                     </p>
-                    <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
-                      <button
-                        type="button"
-                        onClick={() => addToCart(product)}
-                        className="rounded-md border border-orange-400/60 bg-orange-500/10 px-4 py-3 text-sm font-bold text-orange-100 transition hover:border-orange-300 hover:bg-orange-500 hover:text-neutral-950 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-black ${
+                          product.inventory <= 10
+                              ? "bg-orange-500/15 text-orange-100"
+                              : "bg-emerald-500/15 text-emerald-100"
+                        }`}
                       >
-                        Add to basket
-                      </button>
+                        {getStockLabel(product.inventory)}
+                      </span>
+                      <Link
+                        href={`/products/${product.id}`}
+                        className="text-xs font-bold text-neutral-400 transition hover:text-orange-200"
+                      >
+                        View details
+                      </Link>
+                    </div>
+                    <ColorSwatches colors={product.availableColors} />
+                    <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
+                      <Link
+                        href={`/products/${product.id}`}
+                        className="rounded-md border border-orange-400/60 bg-orange-500/10 px-4 py-3 text-center text-sm font-bold text-orange-100 transition hover:border-orange-300 hover:bg-orange-500 hover:text-neutral-950 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                      >
+                        Choose options
+                      </Link>
                       <button
                         type="button"
                         onClick={() => onToggleFavorite(product.id)}

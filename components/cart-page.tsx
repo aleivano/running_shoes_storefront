@@ -23,6 +23,7 @@ import {
   type MockPaymentInput,
 } from "@/lib/checkout";
 import {
+  getCartLineKey,
   getCartItemCount,
   getServerCartSnapshot,
   getStoredCartSnapshot,
@@ -63,8 +64,21 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
           return null;
         }
 
+        const selectedColor = product.availableColors.find(
+          (color) =>
+            color.name === item.selectedColor.name &&
+            color.hex.toUpperCase() === item.selectedColor.hex.toUpperCase(),
+        );
+
+        if (!product.availableSizes.includes(item.selectedSize) || !selectedColor) {
+          return null;
+        }
+
         return {
           ...product,
+          imageUrl: selectedColor.imageUrl ?? product.imageUrl,
+          selectedSize: item.selectedSize,
+          selectedColor,
           quantity: item.quantity,
         };
       })
@@ -82,9 +96,9 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
     writeStoredCart(nextCart);
   };
 
-  const updateQuantity = (productId: number, quantity: number) => {
+  const updateQuantity = (lineKey: string, quantity: number) => {
     const nextCart = cart
-      .map((item) => (item.id === productId ? { ...item, quantity } : item))
+      .map((item) => (getCartLineKey(item) === lineKey ? { ...item, quantity } : item))
       .filter((item) => item.quantity > 0);
 
     updateCart(nextCart);
@@ -171,9 +185,12 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
           </div>
         ) : (
           <div className="grid gap-4">
-            {availableCart.map((item) => (
+            {availableCart.map((item) => {
+              const lineKey = getCartLineKey(item);
+
+              return (
               <article
-                key={item.id}
+                key={lineKey}
                 className="grid gap-4 rounded-lg border border-white/10 bg-neutral-900 p-4 sm:grid-cols-[96px_minmax(0,1fr)_auto]"
               >
                 <Image
@@ -190,23 +207,35 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
                     {item.description}
                   </p>
                   <p className="mt-3 font-bold text-orange-300">{formatPrice(item.price)}</p>
+                  <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-neutral-400">
+                    <span>Size {item.selectedSize}</span>
+                    <span aria-hidden="true">/</span>
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      <span
+                        aria-hidden="true"
+                        className="h-4 w-4 shrink-0 rounded-full border border-white/30"
+                        style={{ backgroundColor: item.selectedColor.hex }}
+                      />
+                      {item.selectedColor.name}
+                    </span>
+                  </p>
                 </div>
                 <div className="flex items-center gap-3 sm:flex-col sm:items-end">
                   <div className="flex h-10 items-center overflow-hidden rounded-md border border-white/10">
                     <button
                       type="button"
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      onClick={() => updateQuantity(lineKey, item.quantity - 1)}
                       className="h-10 w-10 text-lg font-black text-neutral-200 hover:bg-white/5 hover:text-orange-200"
-                      aria-label={`Decrease ${item.name} quantity`}
+                      aria-label={`Decrease ${item.name} size ${item.selectedSize} ${item.selectedColor.name} quantity`}
                     >
                       -
                     </button>
                     <span className="w-10 text-center font-bold text-white">{item.quantity}</span>
                     <button
                       type="button"
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => updateQuantity(lineKey, item.quantity + 1)}
                       className="h-10 w-10 text-lg font-black text-neutral-200 hover:bg-white/5 hover:text-orange-200"
-                      aria-label={`Increase ${item.name} quantity`}
+                      aria-label={`Increase ${item.name} size ${item.selectedSize} ${item.selectedColor.name} quantity`}
                     >
                       +
                     </button>
@@ -214,7 +243,8 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
                   <p className="font-black text-white">{formatPrice(item.price * item.quantity)}</p>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

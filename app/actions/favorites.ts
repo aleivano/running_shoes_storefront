@@ -34,6 +34,7 @@ export async function toggleFavorite(productId: number, isFavorite: boolean) {
   }
 
   revalidatePath("/");
+  revalidatePath(`/products/${productId}`);
   revalidatePath("/account/favorites");
   return { success: true };
 }
