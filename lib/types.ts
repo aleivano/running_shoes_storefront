@@ -11,6 +11,8 @@ export type OrderStatus =
 
 export type PaymentStatus = "unpaid" | "pending" | "paid" | "failed" | "refunded";
 
+export type DeliveryOptionId = "standard" | "express";
+
 export type Product = {
   id: number;
   name: string;
@@ -59,6 +61,10 @@ export type Order = {
   currency: string;
   paymentStatus: PaymentStatus;
   shippingAddress: Record<string, unknown>;
+  deliveryOption: DeliveryOptionId;
+  paymentProvider: string;
+  paymentReference: string | null;
+  paymentMethod: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
   items?: OrderItem[];

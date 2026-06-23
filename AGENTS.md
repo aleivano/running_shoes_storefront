@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a Next.js running shoes store with Supabase-backed accounts, favorites, orders, and admin catalog authoring. Storefront data loading starts in `app/page.tsx`; the interactive catalog, basket, and checkout behavior live in `components/storefront.tsx`. Account routes live under `app/account/`; admin routes live under `app/admin/`; auth routes live under `app/login`, `app/register`, and `app/auth/callback`. Server actions are grouped in `app/actions/`. Supabase client helpers live in `lib/supabase/`, domain types in `lib/types.ts`, data loaders in `lib/data.ts`, and database migrations in `supabase/migrations/`.
+This repository contains a Next.js running shoes store with Supabase-backed accounts, favorites, paid checkout orders, and admin catalog authoring. Storefront data loading starts in `app/page.tsx`; the interactive catalog and cart count live in `components/storefront.tsx`; cart and checkout behavior live in `components/cart-page.tsx` at `/cart`. Account routes live under `app/account/`; admin routes live under `app/admin/`; auth routes live under `app/login`, `app/register`, and `app/auth/callback`. Server actions are grouped in `app/actions/`. Supabase client helpers live in `lib/supabase/`, checkout rules in `lib/checkout.ts`, client cart storage in `lib/cart-storage.ts`, domain types in `lib/types.ts`, data loaders in `lib/data.ts`, and database migrations in `supabase/migrations/`.
 
 ## Build, Test, and Development Commands
 
@@ -26,7 +26,7 @@ OAuth providers are configured outside the codebase in Supabase and the provider
 
 ## Testing Guidelines
 
-No automated test framework is configured yet. Validate changes with `npm run lint`, `npm run build`, and browser checks at desktop and mobile widths. For auth changes, verify email registration, Google registration when configured, username login, and password policy enforcement: 8+ characters, one uppercase letter, one number, and one special character. For cart and order changes, verify adding items updates quantity, line totals, total price, checkout redirects signed-out users, signed-in checkout creates an order, and cancel buttons only appear for pending/processing orders. For admin changes, verify customers cannot open `/admin`, admins can assign roles at `/admin/users`, and admins or catalog editors can create, update, activate, and archive products at `/admin/catalog`. If tests are added later, place them under `tests/` or beside the relevant component using names such as `orders.test.tsx`.
+No automated test framework is configured yet. Validate changes with `npm run lint`, `npm run build`, and browser checks at desktop and mobile widths. For auth changes, verify email registration, Google registration when configured, username login, and password policy enforcement: 8+ characters, one uppercase letter, one number, and one special character. For cart and order changes, verify adding items updates the storefront Cart count, `/cart` shows cart contents, quantity controls update line totals, subtotal, shipping, tax, and total price; checkout redirects signed-out users; signed-in checkout requires a US shipping address, delivery option, and valid fake card; `4242 4242 4242 4242` creates a paid processing order; `4000 0000 0000 9995` declines without creating an order; and cancel buttons only appear for pending/processing orders. For admin changes, verify customers cannot open `/admin`, admins can assign roles at `/admin/users`, and admins or catalog editors can create, update, activate, and archive products at `/admin/catalog`. If tests are added later, place them under `tests/` or beside the relevant component using names such as `orders.test.tsx`.
 
 ## Commit & Pull Request Guidelines
 
@@ -34,7 +34,7 @@ This directory is not currently initialized as a Git repository, so no local com
 
 ## Agent-Specific Instructions
 
-Inspect the current app before editing. Keep changes scoped to the running shoes storefront requirements: dark design, orange accents, responsive layout, catalog cards, auth/account flows, favorites, and client-side basket behavior. Update this guide and `README.md` whenever project commands, structure, dependencies, database schema, or requirements change.
+Inspect the current app before editing. Keep changes scoped to the running shoes storefront requirements: dark design, orange accents, responsive layout, catalog cards, auth/account flows, favorites, and client-side cart behavior. Update this guide and `README.md` whenever project commands, structure, dependencies, database schema, or requirements change.
 
 # ExecPlans
 

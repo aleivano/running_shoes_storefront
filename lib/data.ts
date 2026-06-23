@@ -47,6 +47,10 @@ type OrderRow = {
   currency: string;
   payment_status: Order["paymentStatus"];
   shipping_address: Record<string, unknown>;
+  delivery_option: Order["deliveryOption"];
+  payment_provider: string;
+  payment_reference: string | null;
+  payment_method: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   order_items?: OrderItemRow[];
@@ -101,6 +105,10 @@ const mapOrder = (row: OrderRow): Order => ({
   currency: row.currency,
   paymentStatus: row.payment_status,
   shippingAddress: row.shipping_address,
+  deliveryOption: row.delivery_option,
+  paymentProvider: row.payment_provider,
+  paymentReference: row.payment_reference,
+  paymentMethod: row.payment_method,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   items: row.order_items?.map(mapOrderItem) ?? [],
@@ -180,7 +188,7 @@ export async function getOrders() {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,user_id,status,subtotal,shipping_total,tax_total,total,currency,payment_status,shipping_address,created_at,updated_at,order_items(*)",
+      "id,user_id,status,subtotal,shipping_total,tax_total,total,currency,payment_status,shipping_address,delivery_option,payment_provider,payment_reference,payment_method,created_at,updated_at,order_items(*)",
     )
     .order("created_at", { ascending: false })
     .returns<OrderRow[]>();
