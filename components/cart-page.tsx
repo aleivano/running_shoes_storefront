@@ -86,6 +86,21 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
   }, [cart, products]);
 
   const cartCount = getCartItemCount(availableCart);
+  const quantitiesByProduct = useMemo(() => {
+    const quantities = new Map<number, number>();
+
+    for (const item of availableCart) {
+      quantities.set(item.id, (quantities.get(item.id) ?? 0) + item.quantity);
+    }
+
+    return quantities;
+  }, [availableCart]);
+  const overstockedItem = availableCart.find(
+    (item) => (quantitiesByProduct.get(item.id) ?? 0) > item.inventory,
+  );
+  const stockWarning = overstockedItem
+    ? `${overstockedItem.name} only has ${overstockedItem.inventory} available.`
+    : null;
   const subtotal = useMemo(() => calculateCartSubtotal(availableCart), [availableCart]);
   const totals = useMemo(
     () => calculateCheckoutTotals(subtotal, deliveryOption),
@@ -97,6 +112,18 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
   };
 
   const updateQuantity = (lineKey: string, quantity: number) => {
+    const currentLine = availableCart.find((item) => getCartLineKey(item) === lineKey);
+
+    if (currentLine && quantity > currentLine.quantity) {
+      const productQuantity = quantitiesByProduct.get(currentLine.id) ?? currentLine.quantity;
+
+      if (productQuantity >= currentLine.inventory) {
+        setMessage(`${currentLine.name} only has ${currentLine.inventory} available.`);
+        return;
+      }
+    }
+
+    setMessage(null);
     const nextCart = cart
       .map((item) => (getCartLineKey(item) === lineKey ? { ...item, quantity } : item))
       .filter((item) => item.quantity > 0);
@@ -122,6 +149,11 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
 
   const submitOrder = () => {
     if (!availableCart.length) {
+      return;
+    }
+
+    if (overstockedItem) {
+      setMessage(stockWarning);
       return;
     }
 
@@ -187,6 +219,8 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
           <div className="grid gap-4">
             {availableCart.map((item) => {
               const lineKey = getCartLineKey(item);
+              const productQuantity = quantitiesByProduct.get(item.id) ?? item.quantity;
+              const canIncrease = productQuantity < item.inventory;
 
               return (
               <article
@@ -234,7 +268,8 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
                     <button
                       type="button"
                       onClick={() => updateQuantity(lineKey, item.quantity + 1)}
-                      className="h-10 w-10 text-lg font-black text-neutral-200 hover:bg-white/5 hover:text-orange-200"
+                      disabled={!canIncrease}
+                      className="h-10 w-10 text-lg font-black text-neutral-200 hover:bg-white/5 hover:text-orange-200 disabled:cursor-not-allowed disabled:text-neutral-600"
                       aria-label={`Increase ${item.name} size ${item.selectedSize} ${item.selectedColor.name} quantity`}
                     >
                       +
@@ -442,15 +477,15 @@ export function CartPage({ products, isSignedIn }: CartPageProps) {
               </div>
             </div>
 
-            {message ? (
+            {message || stockWarning ? (
               <p className="mt-4 rounded-md border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
-                {message}
+                {message ?? stockWarning}
               </p>
             ) : null}
             <button
               type="button"
               onClick={submitOrder}
-              disabled={!availableCart.length || isPending}
+              disabled={!availableCart.length || Boolean(overstockedItem) || isPending}
               className="mt-5 w-full rounded-md bg-orange-500 px-5 py-3 font-black text-neutral-950 transition hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-300 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-400"
             >
               {isPending

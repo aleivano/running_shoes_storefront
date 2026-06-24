@@ -11,19 +11,8 @@ import {
   subscribeToStoredCart,
 } from "@/lib/cart-storage";
 import { formatPrice } from "@/lib/format";
+import { getStockState } from "@/lib/stock";
 import type { Product } from "@/lib/types";
-
-const getStockLabel = (inventory: number) => {
-  if (inventory === 0) {
-    return "Out of stock";
-  }
-
-  if (inventory <= 10) {
-    return `Low stock: ${inventory} left`;
-  }
-
-  return "In stock";
-};
 
 export function FavoritesList({ products }: { products: Product[] }) {
   const [favorites, setFavorites] = useState(products);
@@ -63,7 +52,7 @@ export function FavoritesList({ products }: { products: Product[] }) {
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="grid gap-5 sm:grid-cols-2">
         {favorites.map((product) => {
-          const isOutOfStock = product.inventory === 0;
+          const stockState = getStockState(product);
 
           return (
             <article
@@ -94,17 +83,17 @@ export function FavoritesList({ products }: { products: Product[] }) {
                 </div>
                 <p className="text-sm leading-6 text-neutral-300">{product.description}</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-black ${
-                      isOutOfStock
-                        ? "bg-red-500/15 text-red-100"
-                        : product.inventory <= 10
-                          ? "bg-orange-500/15 text-orange-100"
-                          : "bg-emerald-500/15 text-emerald-100"
-                    }`}
-                  >
-                    {getStockLabel(product.inventory)}
-                  </span>
+                  {stockState.label ? (
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-black ${
+                        stockState.kind === "out"
+                          ? "bg-red-500/15 text-red-100"
+                          : "bg-orange-500/15 text-orange-100"
+                      }`}
+                    >
+                      {stockState.label}
+                    </span>
+                  ) : null}
                   <Link
                     href={`/products/${product.id}`}
                     className="text-xs font-bold text-neutral-400 transition hover:text-orange-200"

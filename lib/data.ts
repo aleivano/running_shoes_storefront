@@ -12,7 +12,7 @@ import type {
 } from "@/lib/types";
 
 const PRODUCT_SELECT =
-  "id,name,description,price,image_url,inventory,status,sizing_info,fit_notes,specs,available_sizes,available_colors";
+  "id,name,description,price,image_url,inventory,low_stock_threshold,status,sizing_info,fit_notes,specs,available_sizes,available_colors";
 
 const DEFAULT_PRODUCT_SIZES = ["7", "8", "9", "10", "11", "12", "13"];
 const DEFAULT_PRODUCT_COLORS: ProductColor[] = [{ name: "Black", hex: "#111827" }];
@@ -28,6 +28,7 @@ type ProductRow = {
   price: number;
   image_url: string;
   inventory: number;
+  low_stock_threshold: number | null;
   status: Product["status"];
   sizing_info: string | null;
   fit_notes: string | null;
@@ -158,6 +159,7 @@ export const mapProduct = (row: ProductRow): Product => ({
   price: row.price,
   imageUrl: row.image_url,
   inventory: row.inventory,
+  lowStockThreshold: row.low_stock_threshold ?? 10,
   status: row.status,
   sizingInfo:
     row.sizing_info?.trim() ||
@@ -232,7 +234,6 @@ export async function getProducts() {
       .from("products")
       .select(PRODUCT_SELECT)
       .eq("status", "active")
-      .gt("inventory", 0)
       .order("id")
       .returns<ProductRow[]>();
 

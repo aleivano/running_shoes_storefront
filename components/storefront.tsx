@@ -12,24 +12,13 @@ import {
   subscribeToStoredCart,
 } from "@/lib/cart-storage";
 import { formatPrice } from "@/lib/format";
+import { getStockState } from "@/lib/stock";
 import type { Product, ProductColor } from "@/lib/types";
 
 type StorefrontProps = {
   products: Product[];
   favoriteIds: number[];
   isSignedIn: boolean;
-};
-
-const getStockLabel = (inventory: number) => {
-  if (inventory === 0) {
-    return "Out of stock";
-  }
-
-  if (inventory <= 10) {
-    return `Low stock: ${inventory} left`;
-  }
-
-  return "In stock";
 };
 
 function ColorSwatches({ colors }: { colors: ProductColor[] }) {
@@ -224,6 +213,7 @@ export function Storefront({ products, favoriteIds, isSignedIn }: StorefrontProp
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => {
               const isFavorite = favorites.has(product.id);
+              const stockState = getStockState(product);
               return (
                 <article
                   key={product.id}
@@ -260,15 +250,17 @@ export function Storefront({ products, favoriteIds, isSignedIn }: StorefrontProp
                       {product.description}
                     </p>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-black ${
-                          product.inventory <= 10
-                              ? "bg-orange-500/15 text-orange-100"
-                              : "bg-emerald-500/15 text-emerald-100"
-                        }`}
-                      >
-                        {getStockLabel(product.inventory)}
-                      </span>
+                      {stockState.label ? (
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-black ${
+                            stockState.kind === "out"
+                              ? "bg-red-500/15 text-red-100"
+                              : "bg-orange-500/15 text-orange-100"
+                          }`}
+                        >
+                          {stockState.label}
+                        </span>
+                      ) : null}
                       <Link
                         href={`/products/${product.id}`}
                         className="text-xs font-bold text-neutral-400 transition hover:text-orange-200"

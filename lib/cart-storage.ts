@@ -62,6 +62,8 @@ export const sanitizeCart = (value: unknown): CartItem[] => {
       const id = Number(item.id);
       const price = Number(item.price);
       const inventory = Number(item.inventory);
+      const lowStockThreshold =
+        typeof item.lowStockThreshold === "undefined" ? 10 : Number(item.lowStockThreshold);
       const quantity = Number(item.quantity);
       const selectedSize =
         typeof item.selectedSize === "string" ? item.selectedSize.trim() : "";
@@ -70,6 +72,8 @@ export const sanitizeCart = (value: unknown): CartItem[] => {
         !Number.isInteger(id) ||
         !Number.isFinite(price) ||
         !Number.isInteger(inventory) ||
+        !Number.isInteger(lowStockThreshold) ||
+        lowStockThreshold < 0 ||
         !Number.isInteger(quantity) ||
         quantity < 1 ||
         typeof item.name !== "string" ||
@@ -105,6 +109,7 @@ export const sanitizeCart = (value: unknown): CartItem[] => {
         price,
         imageUrl: item.imageUrl,
         inventory,
+        lowStockThreshold,
         status: item.status,
         sizingInfo: typeof item.sizingInfo === "string" ? item.sizingInfo : "",
         fitNotes: typeof item.fitNotes === "string" ? item.fitNotes : "",

@@ -31,6 +31,7 @@ export type Product = {
   price: number;
   imageUrl: string;
   inventory: number;
+  lowStockThreshold: number;
   status: ProductStatus;
   sizingInfo: string;
   fitNotes: string;

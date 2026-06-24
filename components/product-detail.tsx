@@ -14,24 +14,13 @@ import {
   writeStoredCart,
 } from "@/lib/cart-storage";
 import { formatPrice } from "@/lib/format";
+import { getStockState } from "@/lib/stock";
 import type { Product, ProductColor } from "@/lib/types";
 
 type ProductDetailProps = {
   product: Product;
   favoriteIds: number[];
   isSignedIn: boolean;
-};
-
-const getStockLabel = (inventory: number) => {
-  if (inventory === 0) {
-    return "Out of stock";
-  }
-
-  if (inventory <= 10) {
-    return `Low stock: ${inventory} left`;
-  }
-
-  return "In stock";
 };
 
 export function ProductDetail({ product, favoriteIds, isSignedIn }: ProductDetailProps) {
@@ -50,6 +39,7 @@ export function ProductDetail({ product, favoriteIds, isSignedIn }: ProductDetai
   const cartCount = getCartItemCount(cart);
   const isFavorite = favorites.has(product.id);
   const isOutOfStock = product.inventory === 0;
+  const stockState = getStockState(product);
   const canAddToCart = !isOutOfStock && Boolean(selectedSize) && Boolean(selectedColor);
   const displayedImageUrl = selectedColor?.imageUrl ?? product.imageUrl;
 
@@ -60,6 +50,15 @@ export function ProductDetail({ product, favoriteIds, isSignedIn }: ProductDetai
     }
 
     if (!selectedColor) {
+      return;
+    }
+
+    const productQuantityInCart = cart
+      .filter((item) => item.id === product.id)
+      .reduce((sum, item) => sum + item.quantity, 0);
+
+    if (productQuantityInCart >= product.inventory) {
+      setMessage(`${product.name} only has ${product.inventory} available.`);
       return;
     }
 
@@ -149,17 +148,17 @@ export function ProductDetail({ product, favoriteIds, isSignedIn }: ProductDetai
           <p className="mt-5 text-lg leading-8 text-neutral-300">{product.description}</p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <span
-              className={`rounded-full px-3 py-1 text-sm font-black ${
-                isOutOfStock
-                  ? "bg-red-500/15 text-red-100"
-                  : product.inventory <= 10
-                    ? "bg-orange-500/15 text-orange-100"
-                    : "bg-emerald-500/15 text-emerald-100"
-              }`}
-            >
-              {getStockLabel(product.inventory)}
-            </span>
+            {stockState.label ? (
+              <span
+                className={`rounded-full px-3 py-1 text-sm font-black ${
+                  stockState.kind === "out"
+                    ? "bg-red-500/15 text-red-100"
+                    : "bg-orange-500/15 text-orange-100"
+                }`}
+              >
+                {stockState.label}
+              </span>
+            ) : null}
             <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold text-neutral-200">
               Free returns within 30 days
             </span>

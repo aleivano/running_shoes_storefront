@@ -195,6 +195,21 @@ function ProductFields({ product }: { product?: Product }) {
         />
       </label>
       <label className="grid gap-2 text-sm font-semibold text-neutral-200">
+        Low stock threshold
+        <input
+          name="lowStockThreshold"
+          type="number"
+          min={0}
+          step={1}
+          defaultValue={product?.lowStockThreshold ?? 10}
+          required
+          className="rounded-md border border-white/10 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-orange-300"
+        />
+        <span className="text-xs leading-5 text-neutral-400">
+          Show low-stock text when inventory is below this number. Use 0 to disable it.
+        </span>
+      </label>
+      <label className="grid gap-2 text-sm font-semibold text-neutral-200">
         Status
         <select
           name="status"

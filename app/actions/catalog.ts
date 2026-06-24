@@ -114,6 +114,7 @@ const readProductForm = (formData: FormData) => {
   const price = Number(formData.get("price"));
   const imageUrl = formData.get("imageUrl")?.toString().trim() ?? "";
   const inventory = Number(formData.get("inventory"));
+  const lowStockThreshold = Number(formData.get("lowStockThreshold"));
   const status = formData.get("status")?.toString() as ProductStatus | undefined;
   const sizingInfo = formData.get("sizingInfo")?.toString().trim() ?? "";
   const fitNotes = formData.get("fitNotes")?.toString().trim() ?? "";
@@ -147,6 +148,10 @@ const readProductForm = (formData: FormData) => {
     return { error: "Inventory must be a whole number greater than or equal to 0." };
   }
 
+  if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
+    return { error: "Low stock threshold must be a whole number greater than or equal to 0." };
+  }
+
   if (!status || !productStatuses.has(status)) {
     return { error: "Choose a valid product status." };
   }
@@ -178,6 +183,7 @@ const readProductForm = (formData: FormData) => {
       price,
       image_url: imageUrl,
       inventory,
+      low_stock_threshold: lowStockThreshold,
       status,
       sizing_info: sizingInfo,
       fit_notes: fitNotes,

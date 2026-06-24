@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isSupabaseAdminConfigured, isSupabaseConfigured } from "@/lib/supabase/config";
 import {
   calculateCheckoutTotals,
   processMockPayment,
@@ -73,6 +74,14 @@ export async function createPaidOrderFromCheckout(
       ok: false,
       reason: "config",
       error: "Supabase environment variables are not configured.",
+    };
+  }
+
+  if (!isSupabaseAdminConfigured) {
+    return {
+      ok: false,
+      reason: "config",
+      error: "Supabase service role environment variable is not configured.",
     };
   }
 
@@ -259,13 +268,64 @@ export async function createPaidOrderFromCheckout(
     return { ok: false, error: itemsError.message };
   }
 
+  const decrementPayload = [...quantities.entries()].map(([productId, quantity]) => ({
+    product_id: productId,
+    quantity,
+  }));
+  const adminSupabase = createAdminClient();
+  const { data: inventoryDecremented, error: inventoryError } = await adminSupabase.rpc(
+    "decrement_product_inventories",
+    { p_order_id: order.id, p_user_id: user.id, p_items: decrementPayload },
+  );
+
+  if (inventoryError || !inventoryDecremented) {
+    await supabase
+      .from("orders")
+      .update({
+        status: "canceled",
+        payment_status: "failed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", order.id)
+      .eq("user_id", user.id)
+      .eq("status", "processing");
+
+    await supabase.from("order_events").insert({
+      order_id: order.id,
+      event_type: "failed",
+      message: "Order payment was voided because inventory was no longer available.",
+    });
+
+    revalidatePath("/");
+    revalidatePath("/cart");
+    revalidatePath("/account/orders");
+    revalidatePath("/admin/catalog");
+    for (const productId of productIds) {
+      revalidatePath(`/products/${productId}`);
+    }
+
+    return {
+      ok: false,
+      reason: "validation",
+      error:
+        inventoryError?.message ??
+        "One or more products do not have enough inventory for this order.",
+    };
+  }
+
   await supabase.from("order_events").insert({
     order_id: order.id,
     event_type: "paid",
     message: "Order paid with mock checkout.",
   });
 
+  revalidatePath("/");
+  revalidatePath("/cart");
   revalidatePath("/account/orders");
+  revalidatePath("/admin/catalog");
+  for (const productId of productIds) {
+    revalidatePath(`/products/${productId}`);
+  }
   return { ok: true, orderId: order.id as string };
 }
 

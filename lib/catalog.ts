@@ -55,6 +55,7 @@ export const fallbackProducts: Product[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80",
     inventory: 24,
+    lowStockThreshold: 10,
     status: "active",
     sizingInfo: "US sizes 7-13. True-to-size with a close performance hold through the midfoot.",
     fitNotes:
@@ -76,6 +77,7 @@ export const fallbackProducts: Product[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=900&q=80",
     inventory: 18,
+    lowStockThreshold: 10,
     status: "active",
     sizingInfo:
       "US sizes 7-14. Runs slightly snug; consider a half size up for thicker trail socks.",
@@ -98,6 +100,7 @@ export const fallbackProducts: Product[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=900&q=80",
     inventory: 32,
+    lowStockThreshold: 10,
     status: "active",
     sizingInfo: "US sizes 6-13. True-to-size with a roomy forefoot for longer runs.",
     fitNotes:
@@ -119,6 +122,7 @@ export const fallbackProducts: Product[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=900&q=80",
     inventory: 12,
+    lowStockThreshold: 10,
     status: "active",
     sizingInfo: "US sizes 7-13. Race fit; narrow-footed runners can stay true-to-size.",
     fitNotes:
@@ -140,6 +144,7 @@ export const fallbackProducts: Product[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1543508282-6319a3e2621f?auto=format&fit=crop&w=900&q=80",
     inventory: 29,
+    lowStockThreshold: 10,
     status: "active",
     sizingInfo: "US sizes 6-12. Flexible knit upper adapts to most foot shapes.",
     fitNotes:
@@ -165,6 +170,7 @@ export const fallbackProducts: Product[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=900&q=80",
     inventory: 21,
+    lowStockThreshold: 10,
     status: "active",
     sizingInfo: "US sizes 7-14 including select wide-friendly volume. True-to-size.",
     fitNotes:
@@ -190,6 +196,7 @@ export const fallbackProducts: Product[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80",
     inventory: 17,
+    lowStockThreshold: 10,
     status: "active",
     sizingInfo: "US sizes 6-13. Roomy fit with extra volume through the forefoot.",
     fitNotes:
@@ -215,6 +222,7 @@ export const fallbackProducts: Product[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1605408499391-6368c628ef42?auto=format&fit=crop&w=900&q=80",
     inventory: 15,
+    lowStockThreshold: 10,
     status: "active",
     sizingInfo:
       "US sizes 7-13. Low-volume performance fit; consider a half size up if between sizes.",
